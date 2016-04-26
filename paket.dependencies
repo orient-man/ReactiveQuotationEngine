@@ -1,0 +1,5 @@
+source https://nuget.org/api/v2
+
+nuget FSharp.Control.AsyncSeq >= 2.0.3
+nuget FSharp.Control.Reactive >= 3.4.1
+nuget Rx-Linq >= 2.2.5
