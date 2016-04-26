@@ -5,67 +5,48 @@
 #r "FSharp.Control.Reactive/lib/net45/FSharp.Control.Reactive.dll"
 #r "FSharp.Control.AsyncSeq/lib/net45/FSharp.Control.AsyncSeq.dll"
 
+#load "Domain.fs"
+#load "RandomSource.fs"
+
 open System
-open System.Timers
 open FSharp.Control.Reactive
+open Domain
 
-type Source = TA | ATS | BadTicks
-type Currency = PLN | EUR | USD
-type Pair = Currency * Currency
-type Tick = { Ask: decimal; Bid: decimal; Pair: Pair; TimeStamp: DateTime; Source: Source }
+let timer, randomTicksStream = RandomSource.createRandomTickStream 10 2000
 
-let emptyEurPlnTick() =
-    { Ask = 0m; Bid = 0m; Pair = (EUR, PLN); Source = TA; TimeStamp = DateTime.Now }
+let filterEurPln (tick: InputTick) = match tick with { Pair = (EUR, PLN)} -> Some(tick) | _ -> None
+let filterTa (tick: InputTick) = match tick with { Source = TA } -> Some(tick) | _ -> None
+let filterAts (tick: InputTick) = match tick with { Source = ATS } -> Some(tick) | _ -> None
 
-let random = Random()
-let randomValue() = 1m + 5m * decimal(random.NextDouble())
-
-let randomTick() = { emptyEurPlnTick() with Ask = randomValue(); Bid = randomValue(); }
-
-let randomTaTick() = { randomTick() with Source = TA }
-let randomAtsTick() = { randomTick() with Source = ATS }
-
-let createTimerAndObservable timerInterval =
-    let timer = new Timer(float timerInterval)
-    timer.AutoReset <- true
-
-    let task = async {
-        timer.Start()
-        do! Async.Sleep 2000
-        timer.Stop()
-    }
-
-    (task, timer.Elapsed)
-
-let timer1, eventStream1 = createTimerAndObservable 10
-let timer2, eventStream2 = createTimerAndObservable 100
-
-let taStream = eventStream1 |> Observable.map (fun _ -> randomTaTick())
-let atsStream = eventStream2 |> Observable.map (fun _ -> randomAtsTick())
+let randomEurPlnStream = randomTicksStream |> Observable.choose filterEurPln
+let taEurPlnStream = randomEurPlnStream |>  Observable.choose filterTa
+let atsEurPlnStream = randomEurPlnStream |>  Observable.choose filterAts
 
 let checkLimit v = v > 4m
-let defaultTick = { emptyEurPlnTick() with Bid = 4m; Source = BadTicks }
 
-let preferTaIfMoreThenLimit (ta, ats) = if checkLimit ta.Bid then ta else ats
-let checkLimitOrDefault tick = if checkLimit tick.Bid then tick else defaultTick
+let preferTaIfMoreThenLimit (ta: InputTick, ats: InputTick) =
+    if checkLimit ta.Bid then ta else ats
+
+let badTickIfLimitNotReached (tick: InputTick) =
+    if checkLimit tick.Bid then Valid { Ask = tick.Ask; Bid = tick.Bid; Pair = tick.Pair }
+    else BadTick "limit for bid not reached"
 
 // =CHECK_TICK(PREFER_IF_VALID(PREFER_IF_VALID(_stream_, "TA"), "ATS"))
-let formula = preferTaIfMoreThenLimit >> checkLimitOrDefault
 
-Observable.combineLatest taStream atsStream
+let formula = preferTaIfMoreThenLimit >> badTickIfLimitNotReached
+
+Observable.combineLatest taEurPlnStream atsEurPlnStream
 |> Observable.throttle (TimeSpan.FromMilliseconds(10.0))
 |> Observable.map formula
-|> Observable.subscribe (fun tick -> printfn "bad tick stream: %A" tick)
+|> Observable.subscribe (fun tick -> printfn "Bid checked stream: %A" tick)
 
-let getMinMax ((ta: Tick), (ats: Tick)) =
+let getMinMax ((ta: InputTick), (ats: InputTick)) =
     (Math.Min(ta.Ask, ats.Ask), Math.Max(ta.Bid, ats.Bid))
 
 let minMaxStream =
-    Observable.combineLatest taStream atsStream
+    Observable.combineLatest taEurPlnStream atsEurPlnStream
     |> Observable.map getMinMax
 
-minMaxStream |> Observable.subscribe (fun tick -> printfn "min max stream: %A" tick)
+//minMaxStream |> Observable.subscribe (fun tick -> printfn "min max stream: %A" tick)
 
-[timer1;timer2]
-|> Async.Parallel
-|> Async.RunSynchronously
+Async.RunSynchronously timer
