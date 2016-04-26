@@ -12,17 +12,15 @@ open System
 open FSharp.Control.Reactive
 open Domain
 
+let filterByPair pair (tick: InputTick) = tick.Pair = pair
+let filterBySource source (tick: InputTick) = tick.Source = source
+
 let timer, randomTicksStream = RandomSource.createRandomTickStream 10 2000
+let randomEurPlnStream = randomTicksStream |> Observable.filter (filterByPair (EUR, PLN))
+let taEurPlnStream = randomEurPlnStream |> Observable.filter (filterBySource TA)
+let atsEurPlnStream = randomEurPlnStream |> Observable.filter (filterBySource ATS)
 
-let filterEurPln (tick: InputTick) = match tick with { Pair = (EUR, PLN)} -> Some(tick) | _ -> None
-let filterTa (tick: InputTick) = match tick with { Source = TA } -> Some(tick) | _ -> None
-let filterAts (tick: InputTick) = match tick with { Source = ATS } -> Some(tick) | _ -> None
-
-let randomEurPlnStream = randomTicksStream |> Observable.choose filterEurPln
-let taEurPlnStream = randomEurPlnStream |>  Observable.choose filterTa
-let atsEurPlnStream = randomEurPlnStream |>  Observable.choose filterAts
-
-let checkLimit v = v > 4m
+let checkLimit v = v > 3m
 
 let preferTaIfMoreThenLimit (ta: InputTick, ats: InputTick) =
     if checkLimit ta.Bid then ta else ats
