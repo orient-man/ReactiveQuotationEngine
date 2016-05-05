@@ -1,45 +1,47 @@
-﻿module RandomSource
+﻿namespace ReactiveQuotationEngine
 
-open System
-open System.Timers
-open Domain
+module RandomSource =
 
-let random = Random()
+    open System
+    open System.Timers
+    open ReactiveQuotationEngine.DomainTypes
 
-let randomValue() = 1m + 5m * decimal(random.NextDouble())
+    let random = Random()
 
-let randomSource() =
-    let sources = [|TA; ATS|]
-    sources.[random.Next(0, sources.Length)]
+    let randomValue() = 1m + 5m * decimal(random.NextDouble())
 
-let rec randomPair() =
-    let currencies = [|PLN; EUR; USD|]
-    let randomCurrency() = currencies.[random.Next(0, currencies.Length)]
-    let pair = (randomCurrency(), randomCurrency())
+    let randomSource() =
+        let sources = [|TA; ATS|]
+        sources.[random.Next(0, sources.Length)]
 
-    match pair with (x, y) when x = y -> randomPair() | _ -> pair
+    let rec randomPair() =
+        let currencies = [|PLN; EUR; USD|]
+        let randomCurrency() = currencies.[random.Next(0, currencies.Length)]
+        let pair = (randomCurrency(), randomCurrency())
 
-let randomTick() : InputTick = {
-    Ask = randomValue()
-    Bid = randomValue()
-    Pair = randomPair()
-    Source = randomSource()
-    TimeStamp = DateTime.Now
-}
+        match pair with (x, y) when x = y -> randomPair() | _ -> pair
 
-let createTimerAndObservable timerInterval elapsedTime =
-    let timer = new Timer(float timerInterval)
-    timer.AutoReset <- true
-
-    let task = async {
-        timer.Start()
-        do! Async.Sleep elapsedTime
-        timer.Stop()
+    let randomTick() : InputTick = {
+        Ask = randomValue()
+        Bid = randomValue()
+        Pair = randomPair()
+        Source = randomSource()
+        TimeStamp = DateTime.Now
     }
 
-    (task, timer.Elapsed)
+    let createTimerAndObservable timerInterval elapsedTime =
+        let timer = new Timer(float timerInterval)
+        timer.AutoReset <- true
 
-let createRandomTickStream timerInterval elapsedTime =
-    let timer, eventStream = createTimerAndObservable timerInterval elapsedTime
-    let randomTicksStream = eventStream |> Observable.map (fun _ -> randomTick())
-    (timer, randomTicksStream)
+        let task = async {
+            timer.Start()
+            do! Async.Sleep elapsedTime
+            timer.Stop()
+        }
+
+        (task, timer.Elapsed)
+
+    let createRandomTickStream timerInterval elapsedTime =
+        let timer, eventStream = createTimerAndObservable timerInterval elapsedTime
+        let randomTicksStream = eventStream |> Observable.map (fun _ -> randomTick())
+        (timer, randomTicksStream)

@@ -5,12 +5,13 @@
 #r "FSharp.Control.Reactive/lib/net45/FSharp.Control.Reactive.dll"
 #r "FSharp.Control.AsyncSeq/lib/net45/FSharp.Control.AsyncSeq.dll"
 
-#load "Domain.fs"
+#load "DomainTypes.fs"
 #load "RandomSource.fs"
 
 open System
 open FSharp.Control.Reactive
-open Domain
+open ReactiveQuotationEngine
+open DomainTypes
 
 let filterByPair pair (tick: InputTick) = tick.Pair = pair
 let filterBySource source (tick: InputTick) = tick.Source = source
