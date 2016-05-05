@@ -22,8 +22,9 @@ See example formulas for [Bad Tick](./ReactiveQuotationEngine/BadTickFormula.fs)
 * formulas take as input sequence of ticks from available sources (e.g. TA/ATS)
 * all ticks are for the same currency pair (EUR/PLN etc.)
 * formulas are applied to all currency pairs which have subscription (reactive streams are "lazy")
-* formula outputs Tick structure with denotates Valid (calculated) or BadTick
+* formula outputs Tick structure which denotates Valid (calculated) or BadTick
 * formulas could be edited via gui / test console ([see example](http://www.tryfsharp.org/Create)) / generated from other representation (XML/Excel)
+* F# is both scripted and compiled language so would be relatively easy to add formulas "on the fly"
 
 ## TODO
 
