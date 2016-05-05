@@ -10,7 +10,8 @@ module MinMaxFormula =
         (Math.Min(tick.Ask, ask), Math.Max(tick.Bid, bid))
 
     let getMinMax (ticks: InputTick seq) =
-        let (minAsk, maxBid) = ticks |> Seq.fold getMinMaxFold (0m, 0m)
+        let (minAsk, maxBid) =
+            ticks |> Seq.fold getMinMaxFold (Decimal.MaxValue, Decimal.MinValue)
         Valid { Ask = minAsk; Bid = maxBid; Pair = (ticks |> Seq.head).Pair }
 
     let formula = { Name = "Min Ask, Max Bid formula"; Definition = getMinMax }
