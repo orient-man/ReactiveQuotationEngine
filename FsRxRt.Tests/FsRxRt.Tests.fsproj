@@ -43,6 +43,9 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="DomainTypes.fs" />
+    <Compile Include="CommonLibrary.fs" />
+    <Compile Include="BadTickFormula.fs" />
+    <Compile Include="MinMaxFormula.fs" />
     <Compile Include="RandomSource.fs" />
     <None Include="Script.fsx" />
   </ItemGroup>

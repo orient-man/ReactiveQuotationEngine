@@ -24,3 +24,8 @@ module DomainTypes =
     type InputStream = IObservable<InputTick>
 
     type OutputStream = IObservable<Tick>
+
+    type Formula = {
+        Name: string
+        Definition: InputTick seq -> Tick
+    }
